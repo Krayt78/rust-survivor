@@ -14,6 +14,9 @@ struct Player {
 struct Enemy {
     position: Point2<f32>,
     health: u32,
+    movement_speed: f32,
+    damage: u32,
+    cooldown: f32,
 }
 
 struct State {
@@ -23,24 +26,70 @@ struct State {
     world_boundaries: Point2<f32>,
 }
 
-impl ggez::event::EventHandler<GameError> for State {
-    fn update(&mut self, ctx: &mut Context) -> GameResult<()> {
+impl State {
+    fn handle_player_input(&mut self, ctx: &mut Context) {
+        // Get the time delta once to avoid multiple calls.
+        let delta = ctx.time.delta().as_secs_f32();
+
         if ctx.keyboard.is_key_pressed(KeyCode::Z) {
             // Move player up
-            self.player.position.y -= self.player.movement_speed * ctx.time.delta().as_secs_f32();
+            self.player.position.y -= self.player.movement_speed * delta;
         }
         if ctx.keyboard.is_key_pressed(KeyCode::S) {
-            // Move down
-            self.player.position.y += self.player.movement_speed * ctx.time.delta().as_secs_f32();
+            // Move player down
+            self.player.position.y += self.player.movement_speed * delta;
         }
         if ctx.keyboard.is_key_pressed(KeyCode::Q) {
-            // Move left
-            self.player.position.x -= self.player.movement_speed * ctx.time.delta().as_secs_f32();
+            // Move player left
+            self.player.position.x -= self.player.movement_speed * delta;
         }
         if ctx.keyboard.is_key_pressed(KeyCode::D) {
-            // Move right
-            self.player.position.x += self.player.movement_speed * ctx.time.delta().as_secs_f32();
+            // Move player right
+            self.player.position.x += self.player.movement_speed * delta;
         }
+    }
+    fn handle_ai_movement(&mut self, ctx: &mut Context) {
+        // Get the time delta once to avoid multiple calls.
+        let delta = ctx.time.delta().as_secs_f32();
+
+        for enemy in &mut self.enemies {
+            if enemy.position.x < self.player.position.x {
+                enemy.position.x += enemy.movement_speed * delta;
+            } else {
+                enemy.position.x -= enemy.movement_speed * delta;
+            }
+
+            if enemy.position.y < self.player.position.y {
+                enemy.position.y += enemy.movement_speed * delta;
+            } else {
+                enemy.position.y -= enemy.movement_speed * delta;
+            }
+        }
+
+        // Check for collisions with the player
+        for enemy in &mut self.enemies {
+            //Here i first reduce the cooldown of the enemy and then check if the enemy is in range of the player
+            // because if he is still on cooldown he should not attack
+
+            if enemy.cooldown <= 0.0 {
+                if (enemy.position.x - self.player.position.x).abs() < 10.0
+                    && (enemy.position.y - self.player.position.y).abs() < 10.0
+                {
+                    // Enemy attacks player
+                    self.player.health = self.player.health.saturating_sub(enemy.damage);
+                    enemy.cooldown = 1.0; // Reset cooldown //TODO: Make this a variable and not a magic number
+                }
+            } else if enemy.cooldown > 0.0 {
+                enemy.cooldown -= delta; // Decrease cooldown
+            }
+        }
+    }
+}
+
+impl ggez::event::EventHandler<GameError> for State {
+    fn update(&mut self, ctx: &mut Context) -> GameResult<()> {
+        self.handle_player_input(ctx);
+        self.handle_ai_movement(ctx);
         Ok(())
     }
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
@@ -103,7 +152,22 @@ pub fn main() {
         health: 100,
         movement_speed: 100.0,
     };
-    let enemies = Vec::new();
+    let mut enemies = Vec::new();
+
+    // Create a few enemies with random positions
+    for _i in 0..5 {
+        let enemy = Enemy {
+            position: Point2 {
+                x: rand::random::<f32>() * world_boundaries.x,
+                y: rand::random::<f32>() * world_boundaries.y,
+            },
+            health: 100,
+            movement_speed: 50.0,
+            damage: 5,
+            cooldown: 0.0,
+        };
+        enemies.push(enemy);
+    }
 
     let state = State {
         player,
