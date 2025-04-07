@@ -80,11 +80,12 @@ impl ggez::event::EventHandler<GameError> for State {
 }
 
 pub fn main() {
-    let player = Player { position : Point2{x:0.0,y:0.0}, health : 100 };
-    let enemies = Vec::new();
     let window_size = Point2{x:1024.0,y:768.0};
     // Set world boundaries to be slightly smaller than the window size to avoid drawing outside the window
     let world_boundaries = Point2{x:window_size.x-2.0, y:window_size.y-2.0};
+
+    let player = Player { position : Point2{x:world_boundaries.x/2.0,y:world_boundaries.y/2.0}, health : 100 };
+    let enemies = Vec::new();
     
     let state = State {
         player,
