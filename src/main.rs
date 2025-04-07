@@ -8,6 +8,7 @@ use ggez::input::keyboard::KeyCode;
 struct Player {
     position: Point2<f32>,
     health: u32,
+    movement_speed: f32,
 }
 
 struct Enemy {
@@ -25,20 +26,20 @@ struct State {
 impl ggez::event::EventHandler<GameError> for State {
     fn update(&mut self, ctx: &mut Context) -> GameResult<()> {
         if ctx.keyboard.is_key_pressed(KeyCode::Z) {
-            // Move up
-            println!("Moving up");
+            // Move player up
+            self.player.position.y -= self.player.movement_speed * ctx.time.delta().as_secs_f32();
         }
         if ctx.keyboard.is_key_pressed(KeyCode::S) {
             // Move down
-            println!("Moving down");
+            self.player.position.y += self.player.movement_speed * ctx.time.delta().as_secs_f32();
         }
         if ctx.keyboard.is_key_pressed(KeyCode::Q) {
             // Move left
-            println!("Moving left");
+            self.player.position.x -= self.player.movement_speed * ctx.time.delta().as_secs_f32();
         }
         if ctx.keyboard.is_key_pressed(KeyCode::D) {
             // Move right
-            println!("Moving right");
+            self.player.position.x += self.player.movement_speed * ctx.time.delta().as_secs_f32();
         }
         Ok(())
     }
@@ -84,7 +85,11 @@ pub fn main() {
     // Set world boundaries to be slightly smaller than the window size to avoid drawing outside the window
     let world_boundaries = Point2{x:window_size.x-2.0, y:window_size.y-2.0};
 
-    let player = Player { position : Point2{x:world_boundaries.x/2.0,y:world_boundaries.y/2.0}, health : 100 };
+    let player = Player { 
+        position : Point2{x:world_boundaries.x/2.0,y:world_boundaries.y/2.0}, 
+        health : 100,
+        movement_speed : 100.0, 
+    };
     let enemies = Vec::new();
     
     let state = State {
@@ -94,7 +99,6 @@ pub fn main() {
         world_boundaries
     };
 
-    let c = conf::Conf::new();
     let cb = ContextBuilder::new("my_game", "author")
         .window_setup(WindowSetup::default().title("My Game"))
         .window_mode(WindowMode::default().dimensions(1024.0, 768.0)); // Set width and height here
